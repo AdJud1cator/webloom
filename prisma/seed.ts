@@ -32,12 +32,14 @@ async function main() {
       update: {
         title: page.title,
         content: page.content,
+        links: page.links,
       },
       create: {
         siteId: site.id,
         path: page.path,
         title: page.title,
         content: page.content,
+        links: page.links,
       },
     });
   }
