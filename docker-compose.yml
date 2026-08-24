@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: webloom-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: webloom
+      POSTGRES_PASSWORD: webloom_dev
+      POSTGRES_DB: webloom
+    ports:
+      - "5432:5432"
+    volumes:
+      - webloom-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  webloom-postgres-data:

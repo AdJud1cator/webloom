@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { testSitePages } from "@/lib/test-site-data";
+import { prisma } from "@/lib/prisma";
 
 type TestSitePageProps = {
   params: Promise<{
@@ -15,11 +15,30 @@ export default async function TestSitePage({
 
   const path = slug ? `/${slug.join("/")}` : "/";
 
-  const page = testSitePages.find((page) => page.path === path);
+  const site = await prisma.site.findUnique({
+    where: {
+      slug: "test-site",
+    },
+    include: {
+      pages: true,
+    },
+  });
+
+  if (!site) {
+    notFound();
+  }
+
+  const page = site.pages.find((page) => page.path === path);
 
   if (!page) {
     notFound();
   }
+
+  const links = Array.isArray(page.links)
+    ? page.links.filter(
+        (link): link is string => typeof link === "string",
+      )
+    : [];
 
   return (
     <main>
@@ -46,12 +65,12 @@ export default async function TestSitePage({
 
         <p>{page.content}</p>
 
-        {page.links.length > 0 && (
+        {links.length > 0 && (
           <>
             <h3>Related pages</h3>
 
             <ul>
-              {page.links.map((link) => (
+              {links.map((link) => (
                 <li key={link}>
                   <Link href={`/test-site${link}`}>
                     {link}
