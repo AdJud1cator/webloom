@@ -23,6 +23,7 @@ model Page {
   path      String
   title     String
   content   String
+  html      String?
   links     Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

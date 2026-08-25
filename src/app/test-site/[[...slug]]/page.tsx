@@ -87,7 +87,11 @@ export default async function TestSitePage({
       <article>
         <h2>{page.title}</h2>
 
-        <p>{page.content}</p>
+        {page.html ? (
+          <div dangerouslySetInnerHTML={{ __html: page.html }} />
+        ) : (
+          <p>{page.content}</p>
+        )}
 
         {linkedPages.length > 0 && (
           <section>

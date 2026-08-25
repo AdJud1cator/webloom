@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 
 export async function updateTestSitePage(
   path: string,
-  content: string,
+  content?: string,
+  html?: string,
 ) {
   return prisma.page.updateMany({
     where: {
@@ -12,7 +13,8 @@ export async function updateTestSitePage(
       path,
     },
     data: {
-      content,
+      ...(content !== undefined ? { content } : {}),
+      ...(html !== undefined ? { html } : {}),
     },
   });
 }
