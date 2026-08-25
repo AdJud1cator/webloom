@@ -61,6 +61,16 @@ export default async function TestSitePage({
     notFound();
   }
 
+    if (page.sourceUrl) {
+    return (
+      <div
+        dangerouslySetInnerHTML={{
+          __html: page.html ?? page.content,
+        }}
+      />
+    );
+  }
+
   const links = Array.isArray(page.links)
     ? (page.links as string[])
     : [];

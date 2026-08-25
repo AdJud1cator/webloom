@@ -4,6 +4,7 @@ export async function updateTestSitePage(
   path: string,
   content: string,
   html?: string,
+  title?: string,
 ) {
   return prisma.page.updateMany({
     where: {
@@ -15,6 +16,7 @@ export async function updateTestSitePage(
     data: {
       content,
       ...(html !== undefined ? { html } : {}),
+      ...(title !== undefined ? { title } : {}),
     },
   });
 }
@@ -25,12 +27,14 @@ export async function addTestSitePage({
   content,
   html,
   links = [],
+  sourceUrl,
 }: {
   path: string;
   title: string;
   content: string;
   html?: string;
   links?: string[];
+  sourceUrl?: string;
 }) {
   const site = await prisma.site.findUnique({
     where: {
@@ -50,6 +54,58 @@ export async function addTestSitePage({
       content,
       html,
       links,
+      sourceUrl,
+    },
+  });
+}
+
+export async function upsertTestSitePage({
+  path,
+  title,
+  content,
+  html,
+  links = [],
+  sourceUrl,
+}: {
+  path: string;
+  title: string;
+  content: string;
+  html?: string;
+  links?: string[];
+  sourceUrl?: string;
+}) {
+  const site = await prisma.site.findUnique({
+    where: {
+      slug: "test-site",
+    },
+  });
+
+  if (!site) {
+    throw new Error("Test site not found");
+  }
+
+  return prisma.page.upsert({
+    where: {
+      siteId_path: {
+        siteId: site.id,
+        path,
+      },
+    },
+    create: {
+      siteId: site.id,
+      path,
+      title,
+      content,
+      html,
+      links,
+      sourceUrl,
+    },
+    update: {
+      title,
+      content,
+      html,
+      links,
+      sourceUrl,
     },
   });
 }
