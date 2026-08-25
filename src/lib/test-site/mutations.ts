@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function updateTestSitePage(
   path: string,
-  content?: string,
+  content: string,
   html?: string,
 ) {
   return prisma.page.updateMany({
@@ -13,7 +13,7 @@ export async function updateTestSitePage(
       path,
     },
     data: {
-      ...(content !== undefined ? { content } : {}),
+      content,
       ...(html !== undefined ? { html } : {}),
     },
   });
@@ -23,11 +23,13 @@ export async function addTestSitePage({
   path,
   title,
   content,
+  html,
   links = [],
 }: {
   path: string;
   title: string;
   content: string;
+  html?: string;
   links?: string[];
 }) {
   const site = await prisma.site.findUnique({
@@ -46,7 +48,19 @@ export async function addTestSitePage({
       path,
       title,
       content,
+      html,
       links,
+    },
+  });
+}
+
+export async function deleteTestSitePage(path: string) {
+  return prisma.page.deleteMany({
+    where: {
+      site: {
+        slug: "test-site",
+      },
+      path,
     },
   });
 }

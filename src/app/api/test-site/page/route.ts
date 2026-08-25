@@ -1,39 +1,33 @@
 import { NextResponse } from "next/server";
 
-import { updateTestSitePage } from "@/lib/test-site/mutations";
+import {
+  addTestSitePage,
+  deleteTestSitePage,
+  updateTestSitePage,
+} from "@/lib/test-site/mutations";
 
 export async function POST(request: Request) {
   const body = await request.json();
 
   const path = body.path;
+  const title = body.title;
   const content = body.content;
   const html = body.html;
-
-  if (typeof path !== "string") {
-    return NextResponse.json(
-      {
-        error: "path is required",
-      },
-      { status: 400 },
-    );
-  }
+  const links = body.links;
 
   if (
-    content !== undefined &&
+    typeof path !== "string" ||
     typeof content !== "string"
   ) {
     return NextResponse.json(
       {
-        error: "content must be a string",
+        error: "path and content are required",
       },
       { status: 400 },
     );
   }
 
-  if (
-    html !== undefined &&
-    typeof html !== "string"
-  ) {
+  if (html !== undefined && typeof html !== "string") {
     return NextResponse.json(
       {
         error: "html must be a string",
@@ -42,23 +36,32 @@ export async function POST(request: Request) {
     );
   }
 
-  if (
-    content === undefined &&
-    html === undefined
-  ) {
+  if (links !== undefined && !Array.isArray(links)) {
     return NextResponse.json(
       {
-        error: "content or html is required",
+        error: "links must be an array",
       },
       { status: 400 },
     );
   }
 
-  const result = await updateTestSitePage(
-    path,
-    content,
-    html,
-  );
+  if (typeof title === "string") {
+    const result = await addTestSitePage({
+      path,
+      title,
+      content,
+      html,
+      links,
+    });
+
+    return NextResponse.json({
+      success: true,
+      operation: "created",
+      path: result.path,
+    });
+  }
+
+  const result = await updateTestSitePage(path, content, html);
 
   if (result.count === 0) {
     return NextResponse.json(
@@ -71,8 +74,39 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     success: true,
+    operation: "updated",
     path,
-    ...(content !== undefined ? { content } : {}),
-    ...(html !== undefined ? { html } : {}),
+  });
+}
+
+export async function DELETE(request: Request) {
+  const body = await request.json();
+
+  const path = body.path;
+
+  if (typeof path !== "string") {
+    return NextResponse.json(
+      {
+        error: "path is required",
+      },
+      { status: 400 },
+    );
+  }
+
+  const result = await deleteTestSitePage(path);
+
+  if (result.count === 0) {
+    return NextResponse.json(
+      {
+        error: "Page not found",
+      },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    operation: "deleted",
+    path,
   });
 }
