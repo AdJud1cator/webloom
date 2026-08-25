@@ -5,11 +5,13 @@ const {
   mockUpdateMany,
   mockDeleteMany,
   mockFindUnique,
+  mockUpsert,
 } = vi.hoisted(() => ({
   mockCreate: vi.fn(),
   mockUpdateMany: vi.fn(),
   mockDeleteMany: vi.fn(),
   mockFindUnique: vi.fn(),
+  mockUpsert: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -21,6 +23,7 @@ vi.mock("@/lib/prisma", () => ({
       create: mockCreate,
       updateMany: mockUpdateMany,
       deleteMany: mockDeleteMany,
+      upsert: mockUpsert,
     },
   },
 }));
@@ -29,6 +32,7 @@ import {
   addTestSitePage,
   deleteTestSitePage,
   updateTestSitePage,
+  upsertTestSitePage,
 } from "./mutations";
 
 describe("test site page mutations", () => {
@@ -145,5 +149,96 @@ describe("test site page mutations", () => {
     const result = await deleteTestSitePage("/missing");
 
     expect(result.count).toBe(0);
+  });
+
+  it("creates a snapshot when the page does not exist", async () => {
+    mockFindUnique.mockResolvedValue({
+      id: "site-123",
+      slug: "test-site",
+    });
+
+    mockUpsert.mockResolvedValue({
+      id: "page-123",
+      path: "/snapshots/example-com",
+      title: "Example Domain",
+      content: "<html>original</html>",
+    });
+
+    const result = await upsertTestSitePage({
+      path: "/snapshots/example-com",
+      title: "Example Domain",
+      content: "<html>original</html>",
+      html: "<html>original</html>",
+      sourceUrl: "https://example.com/",
+    });
+
+    expect(mockUpsert).toHaveBeenCalledWith({
+      where: {
+        siteId_path: {
+          siteId: "site-123",
+          path: "/snapshots/example-com",
+        },
+      },
+      create: {
+        siteId: "site-123",
+        path: "/snapshots/example-com",
+        title: "Example Domain",
+        content: "<html>original</html>",
+        html: "<html>original</html>",
+        links: [],
+        sourceUrl: "https://example.com/",
+      },
+      update: {
+        title: "Example Domain",
+        content: "<html>original</html>",
+        html: "<html>original</html>",
+        links: [],
+        sourceUrl: "https://example.com/",
+      },
+    });
+
+    expect(result.path).toBe("/snapshots/example-com");
+  });
+
+  it("updates an existing snapshot", async () => {
+    mockFindUnique.mockResolvedValue({
+      id: "site-123",
+      slug: "test-site",
+    });
+
+    mockUpsert.mockResolvedValue({
+      id: "page-123",
+      path: "/snapshots/example-com",
+      title: "Example Domain Modified",
+      content: "<html>modified</html>",
+    });
+
+    const result = await upsertTestSitePage({
+      path: "/snapshots/example-com",
+      title: "Example Domain Modified",
+      content: "<html>modified</html>",
+      html: "<html>modified</html>",
+      sourceUrl: "https://example.com/",
+    });
+
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          siteId_path: {
+            siteId: "site-123",
+            path: "/snapshots/example-com",
+          },
+        },
+        update: {
+          title: "Example Domain Modified",
+          content: "<html>modified</html>",
+          html: "<html>modified</html>",
+          links: [],
+          sourceUrl: "https://example.com/",
+        },
+      }),
+    );
+
+    expect(result.path).toBe("/snapshots/example-com");
   });
 });
