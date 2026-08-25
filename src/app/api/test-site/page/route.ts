@@ -6,7 +6,26 @@ import {
   updateTestSitePage,
 } from "@/lib/test-site/mutations";
 
+function isAuthorized(request: Request) {
+  const expectedKey = process.env.TEST_SITE_API_KEY;
+
+  if (!expectedKey) {
+    return false;
+  }
+
+  const authorization = request.headers.get("authorization");
+
+  return authorization === `Bearer ${expectedKey}`;
+}
+
 export async function POST(request: Request) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
   const body = await request.json();
 
   const path = body.path;
@@ -80,6 +99,12 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
   const body = await request.json();
 
   const path = body.path;
