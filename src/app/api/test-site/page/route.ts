@@ -18,6 +18,22 @@ function isAuthorized(request: Request) {
   return authorization === `Bearer ${expectedKey}`;
 }
 
+function isValidPath(path: unknown): path is string {
+  return (
+    typeof path === "string" &&
+    path.startsWith("/") &&
+    !path.startsWith("//") &&
+    path.length > 1
+  );
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => typeof item === "string")
+  );
+}
+
 export async function POST(request: Request) {
   if (!isAuthorized(request)) {
     return NextResponse.json(
@@ -26,21 +42,51 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json();
+  let body: unknown;
 
-  const path = body.path;
-  const title = body.title;
-  const content = body.content;
-  const html = body.html;
-  const links = body.links;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 },
+    );
+  }
 
-  if (
-    typeof path !== "string" ||
-    typeof content !== "string"
-  ) {
+  if (!body || typeof body !== "object") {
+    return NextResponse.json(
+      { error: "Request body must be an object" },
+      { status: 400 },
+    );
+  }
+
+  const {
+    path,
+    title,
+    content,
+    html,
+    links,
+  } = body as {
+    path?: unknown;
+    title?: unknown;
+    content?: unknown;
+    html?: unknown;
+    links?: unknown;
+  };
+
+  if (!isValidPath(path)) {
     return NextResponse.json(
       {
-        error: "path and content are required",
+        error: "path must start with / and must not be empty",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (typeof content !== "string") {
+    return NextResponse.json(
+      {
+        error: "content is required and must be a string",
       },
       { status: 400 },
     );
@@ -55,10 +101,19 @@ export async function POST(request: Request) {
     );
   }
 
-  if (links !== undefined && !Array.isArray(links)) {
+  if (links !== undefined && !isStringArray(links)) {
     return NextResponse.json(
       {
-        error: "links must be an array",
+        error: "links must be an array of strings",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (title !== undefined && typeof title !== "string") {
+    return NextResponse.json(
+      {
+        error: "title must be a string",
       },
       { status: 400 },
     );
@@ -80,7 +135,11 @@ export async function POST(request: Request) {
     });
   }
 
-  const result = await updateTestSitePage(path, content, html);
+  const result = await updateTestSitePage(
+    path,
+    content,
+    html,
+  );
 
   if (result.count === 0) {
     return NextResponse.json(
@@ -105,14 +164,33 @@ export async function DELETE(request: Request) {
       { status: 401 },
     );
   }
-  const body = await request.json();
 
-  const path = body.path;
+  let body: unknown;
 
-  if (typeof path !== "string") {
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 },
+    );
+  }
+
+  if (!body || typeof body !== "object") {
+    return NextResponse.json(
+      { error: "Request body must be an object" },
+      { status: 400 },
+    );
+  }
+
+  const { path } = body as {
+    path?: unknown;
+  };
+
+  if (!isValidPath(path)) {
     return NextResponse.json(
       {
-        error: "path is required",
+        error: "path must start with / and must not be empty",
       },
       { status: 400 },
     );
